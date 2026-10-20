@@ -2,37 +2,127 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mi primera experiencia AR</title>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   <style>
-    body { margin: 0; overflow: hidden; }
-    #aviso {
-      position: fixed; top: 12px; left: 12px; right: 12px;
-      z-index: 10; padding: 10px; border-radius: 8px;
-      background: #153451; color: white;
-      font: 16px Arial; text-align: center;
+    :root {
+      --bg: #0f172a;
+      --panel: rgba(15, 23, 42, 0.8);
+      --text: #e2e8f0;
+      --accent: #38bdf8;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #020617;
+      color: var(--text);
+    }
+
+    #estado {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      z-index: 10;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--panel);
+      color: var(--text);
+      text-align: center;
+      font-size: 15px;
+      line-height: 1.4;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
       pointer-events: none;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    #estado.error {
+      background: rgba(127, 29, 29, 0.92);
+      border-color: rgba(248, 113, 113, 0.5);
+    }
+
+    #estado.ok {
+      background: rgba(20, 83, 45, 0.9);
+      border-color: rgba(74, 222, 128, 0.5);
     }
   </style>
 </head>
 <body>
-  <div id="aviso">Autoriza la cámara y apunta al target</div>
+  <div id="estado">Comprueba que estás sirviendo la web desde localhost y apunta a la imagen target.</div>
+
   <a-scene
-    mindar-image="imageTargetSrc: ./target.mind;"
+    mindar-image="imageTargetSrc: ./target.mind; maxTrack: 1;"
     color-space="sRGB"
     renderer="colorManagement: true;"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
-    <a-camera position="0 0 0"
-              look-controls="enabled: false"></a-camera>
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
     <a-entity mindar-image-target="targetIndex: 0">
-      <a-box color="#168BCD"
-             width="0.4" height="0.4" depth="0.4"
-             position="0 0 0.2"></a-box>
+      <a-box
+        color="#38bdf8"
+        width="0.4" height="0.4" depth="0.4"
+        position="0 0 0.2"
+        material="opacity: 0.92; transparent: true; roughness: 0.5">
+      </a-box>
+      <a-text
+        value="DARA"
+        align="center"
+        color="#ffffff"
+        position="0 0 0.45"
+        scale="0.35 0.35 0.35">
+      </a-text>
     </a-entity>
   </a-scene>
+
+  <script>
+    const estado = document.getElementById('estado');
+
+    function comprobarEntorno() {
+      const esArchivoLocal = window.location.protocol === 'file:';
+      const esServidorLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+      if (esArchivoLocal || !esServidorLocal) {
+        estado.textContent = 'Abre la página con un servidor local: python -m http.server 8000 y luego entra a http://localhost:8000';
+        estado.classList.add('error');
+        return false;
+      }
+
+      estado.textContent = 'Cámara activa. Apunta al target para detectar el marcador.';
+      estado.classList.add('ok');
+      return true;
+    }
+
+    function registrarEventosAR() {
+      const scene = document.querySelector('a-scene');
+      if (!scene) return;
+
+      scene.addEventListener('targetFound', () => {
+        estado.textContent = 'Marcador detectado. Mostrando la experiencia AR.';
+        estado.classList.remove('error');
+        estado.classList.add('ok');
+      });
+
+      scene.addEventListener('targetLost', () => {
+        estado.textContent = 'Marcador perdido. Vuelve a apuntar al target.';
+        estado.classList.remove('ok');
+        estado.classList.add('error');
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      comprobarEntorno();
+      registrarEventosAR();
+    });
+  </script>
 </body>
 </html>
